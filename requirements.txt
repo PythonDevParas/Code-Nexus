@@ -1,0 +1,6 @@
+PyQt6
+pywebview
+requests
+pythonnet
+Pygments
+Psutil
