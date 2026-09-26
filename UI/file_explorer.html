@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeNexus Explorer</title>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: #181825;
+      color: #cdd6f4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    .header {
+      padding: 10px 12px 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #89b4fa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #313244;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      cursor: pointer;
+      color: #a6adc8;
+      transition: color 0.15s ease;
+    }
+
+    .action-btn:hover {
+      color: #ffffff;
+    }
+
+    /* Search/Filter Bar */
+    .search-box {
+      padding: 6px 10px;
+      border-bottom: 1px solid #1e1e2e;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: #11111b;
+      border: 1px solid #313244;
+      border-radius: 4px;
+      color: #cdd6f4;
+      font-size: 12px;
+      padding: 4px 8px;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: #89b4fa;
+    }
+
+    /* Tree View Container */
+    #tree-root {
+      flex: 1;
+      padding: 6px 0;
+      overflow-y: auto;
+    }
+
+    .tree-node {
+      display: flex;
+      align-items: center;
+      padding: 3px 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      border-radius: 3px;
+      margin: 1px 4px;
+      gap: 6px;
+    }
+
+    .tree-node:hover {
+      background-color: #313244;
+    }
+
+    .tree-node.active {
+      background-color: #45475a;
+      color: #ffffff;
+    }
+
+    .arrow {
+      display: inline-block;
+      width: 12px;
+      font-size: 10px;
+      color: #6c7086;
+      transition: transform 0.15s ease;
+      text-align: center;
+    }
+
+    .arrow.expanded {
+      transform: rotate(90deg);
+    }
+
+    .icon {
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+    }
+
+    .label {
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .nested-children {
+      display: none;
+    }
+
+    .nested-children.visible {
+      display: block;
+    }
+
+    /* File Icon Colors */
+    .icon-py { color: #f9e2af; }
+    .icon-html { color: #fab387; }
+    .icon-css { color: #89dceb; }
+    .icon-js { color: #f9e2af; }
+    .icon-json { color: #a6e3a1; }
+    .icon-folder { color: #89b4fa; }
+    .icon-default { color: #bac2de; }
+  </style>
+
+  <script src="qwebchannel.js"></script>
+</head>
+<body>
+
+  <div class="header">
+    <span id="workspace-title">EXPLORER</span>
+    <div class="header-actions">
+      <span class="action-btn" title="Refresh" onclick="requestRefresh()">⟳</span>
+      <span class="action-btn" title="Collapse All" onclick="collapseAll()">⊟</span>
+    </div>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="filter-input" placeholder="Filter files..." oninput="filterTree()">
+  </div>
+
+  <div id="tree-root"></div>
+
+  <script>
+    let pyBridge = null;
+    let rawTreeData = null;
+
+    // Connect with PyQt6 WebChannel
+    if (typeof QWebChannel !== "undefined" && window.qt && window.qt.webChannelTransport) {
+      new QWebChannel(qt.webChannelTransport, function (channel) {
+        pyBridge = channel.objects.pyBridge;
+        if (pyBridge && typeof pyBridge.onExplorerReady === "function") {
+          pyBridge.onExplorerReady();
+        }
+      });
+    }
+
+    function getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      switch (ext) {
+        case 'py': return { icon: '🐍', cls: 'icon-py' };
+        case 'html': return { icon: '🌐', cls: 'icon-html' };
+        case 'css': return { icon: '🎨', cls: 'icon-css' };
+        case 'js': return { icon: '⚡', cls: 'icon-js' };
+        case 'json': return { icon: '⚙', cls: 'icon-json' };
+        case 'db': return { icon: '🗄', cls: 'icon-json' };
+        default: return { icon: '📄', cls: 'icon-default' };
+      }
+    }
+
+    /**
+     * Called by Python backend: loads file system JSON hierarchy
+     * Expected data:
+     * {
+     *   "name": "Code Nexus",
+     *   "path": "C:/...",
+     *   "type": "folder",
+     *   "children": [...]
+     * }
+     */
+    function loadFileTree(treeJson) {
+      const data = typeof treeJson === "string" ? JSON.parse(treeJson) : treeJson;
+      rawTreeData = data;
+      document.getElementById('workspace-title').innerText = (data.name || 'EXPLORER').toUpperCase();
+
+      const rootContainer = document.getElementById('tree-root');
+      rootContainer.innerHTML = '';
+      if (data.children) {
+        data.children.forEach(item => {
+          rootContainer.appendChild(createTreeNode(item, 0));
+        });
+      }
+    }
+
+    function createTreeNode(item, depth) {
+      const isFolder = item.type === "folder";
+      const wrapper = document.createElement('div');
+
+      const node = document.createElement('div');
+      node.className = 'tree-node';
+      node.style.paddingLeft = `${depth * 14 + 8}px`;
+
+      let iconHtml = '';
+      let arrowHtml = '';
+
+      if (isFolder) {
+        arrowHtml = `<span class="arrow">▶</span>`;
+        iconHtml = `<span class="icon icon-folder">📁</span>`;
+      } else {
+        const fileMeta = getFileIcon(item.name);
+        arrowHtml = `<span class="arrow" style="visibility:hidden;">•</span>`;
+        iconHtml = `<span class="icon ${fileMeta.cls}">${fileMeta.icon}</span>`;
+      }
+
+      node.innerHTML = `
+        ${arrowHtml}
+        ${iconHtml}
+        <span class="label" title="${item.path}">${item.name}</span>
+      `;
+
+      wrapper.appendChild(node);
+
+      if (isFolder && item.children) {
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'nested-children';
+
+        item.children.forEach(child => {
+          childrenContainer.appendChild(createTreeNode(child, depth + 1));
+        });
+
+        wrapper.appendChild(childrenContainer);
+
+        // Toggle folder on click
+        node.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const arrow = node.querySelector('.arrow');
+          const isExpanded = childrenContainer.classList.toggle('visible');
+          arrow.classList.toggle('expanded', isExpanded);
+        });
+      } else {
+        // Handle file click -> Notify Python
+        node.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.tree-node').forEach(el => el.classList.remove('active'));
+          node.classList.add('active');
+
+          if (pyBridge && typeof pyBridge.openFile === "function") {
+            pyBridge.openFile(item.path);
+          }
+        });
+      }
+
+      return wrapper;
+    }
+
+    function requestRefresh() {
+      if (pyBridge && typeof pyBridge.refreshWorkspace === "function") {
+        pyBridge.refreshWorkspace();
+      }
+    }
+
+    function collapseAll() {
+      document.querySelectorAll('.nested-children').forEach(el => el.classList.remove('visible'));
+      document.querySelectorAll('.arrow').forEach(el => el.classList.remove('expanded'));
+    }
+
+    function filterTree() {
+      const query = document.getElementById('filter-input').value.toLowerCase();
+      const nodes = document.querySelectorAll('.tree-node');
+
+      nodes.forEach(node => {
+        const text = node.querySelector('.label').innerText.toLowerCase();
+        if (!query || text.includes(query)) {
+          node.style.display = 'flex';
+        } else {
+          node.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CodeNexus Monaco Editor</title>
+  <!-- Monaco Editor CSS CDN -->
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #1e1e2e;
+    }
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="container"></div>
+
+  <!-- Monaco AMD Loader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  <script>
+    let editor = null;
+    let activeLanguage = "python";
+
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+
+    require(['vs/editor/editor.main'], function () {
+
+      // =========================================================================
+      // 1. Python IntelliSense & Autocomplete Provider
+      // =========================================================================
+      monaco.languages.registerCompletionItemProvider('python', {
+        provideCompletionItems: function (model, position) {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn
+          };
+
+          const suggestions = [
+            {
+              label: 'def',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'def ${1:function_name}(${2:params}):\n\t${0:pass}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Define a new function',
+              range: range
+            },
+            {
+              label: 'class',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'class ${1:ClassName}:\n\tdef __init__(self${2:, args}):\n\t\t${0:pass}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Define a new Class with constructor',
+              range: range
+            },
+            {
+              label: 'import',
+              kind: monaco.languages.CompletionItemKind.Keyword,
+              insertText: 'import ${0:module}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Import a module',
+              range: range
+            },
+            {
+              label: 'from',
+              kind: monaco.languages.CompletionItemKind.Keyword,
+              insertText: 'from ${1:module} import ${0:submodule}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'From module import statement',
+              range: range
+            },
+            {
+              label: 'print',
+              kind: monaco.languages.CompletionItemKind.Function,
+              insertText: 'print(${0})',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Print output to console',
+              range: range
+            },
+            {
+              label: 'if',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'if ${1:condition}:\n\t${0:pass}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'If conditional statement',
+              range: range
+            },
+            {
+              label: 'ifelse',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'if ${1:condition}:\n\t${2:pass}\nelse:\n\t${0:pass}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'If-Else statement block',
+              range: range
+            },
+            {
+              label: 'for',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'for ${1:item} in ${2:iterable}:\n\t${0:pass}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'For loop statement',
+              range: range
+            },
+            {
+              label: 'while',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'while ${1:condition}:\n\t${0:pass}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'While loop statement',
+              range: range
+            },
+            {
+              label: 'try',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'try:\n\t${1:pass}\nexcept Exception as e:\n\t${0:print(e)}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Try-Except error handling block',
+              range: range
+            },
+            {
+              label: 'main',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'if __name__ == "__main__":\n\t${0:main()}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Boilerplate __main__ execution guard',
+              range: range
+            }
+          ];
+
+          return { suggestions: suggestions };
+        }
+      });
+
+      // =========================================================================
+      // 2. HTML IntelliSense & Boilerplate Snippets
+      // =========================================================================
+      monaco.languages.registerCompletionItemProvider('html', {
+        provideCompletionItems: function (model, position) {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn
+          };
+
+          const suggestions = [
+            {
+              label: 'html5',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: '<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>${1:Document}</title>\n</head>\n<body>\n\t${0}\n</body>\n</html>',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Full HTML5 starter template',
+              range: range
+            },
+            {
+              label: 'div',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: '<div class="${1:container}">\n\t${0}\n</div>',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'HTML <div> container',
+              range: range
+            },
+            {
+              label: 'button',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: '<button onclick="${1:handleClick()}">${0:Click Me}</button>',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'HTML <button> element',
+              range: range
+            },
+            {
+              label: 'script',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: '<script>\n\t${0}\n<\/script>',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Embedded JavaScript <script> tag',
+              range: range
+            },
+            {
+              label: 'style',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: '<style>\n\t${0}\n</style>',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Embedded CSS <style> block',
+              range: range
+            },
+            {
+              label: 'link',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: '<link rel="stylesheet" href="${1:style.css}">',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Link external CSS stylesheet',
+              range: range
+            },
+            {
+              label: 'a',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: '<a href="${1:#}">${0:Link}</a>',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Anchor hyperlink tag',
+              range: range
+            }
+          ];
+
+          return { suggestions: suggestions };
+        }
+      });
+
+      // =========================================================================
+      // 3. Monaco Editor Initial Setup
+      // =========================================================================
+      editor = monaco.editor.create(document.getElementById('container'), {
+        value: '# Welcome to CodeNexus IDE\nprint("IntelliSense Ready!")\n',
+        language: 'python',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        fontSize: 14,
+        quickSuggestions: { other: true, comments: false, strings: true },
+        suggestOnTriggerCharacters: true,
+        tabCompletion: 'on',
+        wordBasedSuggestions: true
+      });
+    });
+
+    // =========================================================================
+    // 4. API Functions
+    // =========================================================================
+    function setEditorLanguage(lang) {
+      if (!editor) return;
+      activeLanguage = lang;
+      const model = editor.getModel();
+      monaco.editor.setModelLanguage(model, lang);
+    }
+
+    function setEditorContent(content, lang) {
+      if (!editor) return;
+      editor.setValue(content);
+      if (lang) {
+        setEditorLanguage(lang);
+      }
+    }
+
+    function getEditorContent() {
+      return editor ? editor.getValue() : "";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+================================================================================
+                    CODENEXUS IDE - TERMS & POLICIES
+================================================================================
+Last Updated: September 2026
+
+1. ACCEPTANCE OF TERMS
+By installing, downloading, or using CodeNexus IDE, you agree to be bound by 
+these Terms of Service, Privacy Policy, and Acceptable Use Policy. If you do 
+not agree, cancel the installation immediately.
+
+2. LOCAL-FIRST PRIVACY POLICY
+- Workspace Isolation: CodeNexus operates directly on your local computer. 
+  Your source code, projects, and directory structure remain local to your 
+  machine unless explicitly pushed to GitHub or saved to Cloud Storage.
+- API Key Privacy: Your OpenRouter API keys and third-party credentials are 
+  stored locally in Data/ai_config.json. CodeNexus does not harvest, transmit, 
+  or resell your API credentials.
+- Telemetry: CodeNexus does not track keystrokes, personal identity data, or 
+  background user telemetry.
+
+3. AI AGENT & AUTOMATION POLICY
+- Autonomous Execution: The integrated AI Copilot contains agentic capabilities 
+  allowing it to create, write, edit, and delete files upon explicit user prompt.
+- User Responsibility: While the agent employs sandboxed workspace safeguards, 
+  the user holds full responsibility for inspecting and verifying AI-generated 
+  modifications and destructive operations (deletions, refactors).
+
+4. 1-CLICK GITHUB DEPLOYER POLICY
+- CodeNexus utilizes a self-contained portable Git distribution or system Git.
+- Credentials and authentication are handled securely through standard Git 
+  credential managers or secure URLs. No login passwords or personal tokens 
+  are retained on external third-party tracking servers.
+
+5. INTELLECTUAL PROPERTY & OWNERSHIP
+- Any software, script, architecture, or assets you write or generate using 
+  CodeNexus IDE belong entirely to you.
+- CodeNexus IDE core framework and binaries are provided "as-is" without warranty 
+  of any kind, express or implied.
+
+================================================================================
